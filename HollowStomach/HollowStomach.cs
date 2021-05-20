@@ -15,12 +15,12 @@ namespace HollowStomach
 	 * Make Hollow Knight more like Hungry Knight
 	 * Behavior:
 	 *     - hitting enemies does not give SOUL
-	 *     - SOUL drains at a rate of N/sec
+	 *     - SOUL drains at a rate of N/sec, starting when you first pick up Geo
 	 *     - if you are at zero SOUL, you take 1 mask every N seconds
 	 *     - if you're in a dream sequence, SOUL doesn't drain but you're still subject to 
 	 *       starvation
 	 *     - being within some distance of a bench doesn't cause your SOUL to drain
-	 *     - picking up any Geo resets your SOUL to full (HeroController.instance.SetMPCharge)
+	 *     - picking up any Geo resets your SOUL to full 
 	 *     - being near a bench increases your SOUL to full at a rate of N/s
 	 *     - hitting a boss (hardcoded) drops geo
 	 */
@@ -31,8 +31,8 @@ namespace HollowStomach
 		public float timer_SoulDrain = 0;
 		public float timer_SoulGain = 0;
 		public float timer_TakeDamage = 0;
-		public int hungerLevel = 2; // how much soul to drain every 1/2 sec
-		private float soulDrainTimer = 0.5f;
+		private float soulDrainTimer = 0.4f; // interval to drain soul
+		public int hungerLevel = 2; // how much soul to drain 
 		private float soulGainTimer = 0.25f;
 		private float healthTimer = 2f; // health drain interval
 		private int minSoul = 99; // minimum soul at resting
@@ -46,7 +46,7 @@ namespace HollowStomach
 
 		private List<String> dreams = new List<String> {"White_Palace_01", "White_Palace_02", "White_Palace_03_hub", "White_Palace_04", "White_Palace_05", "White_Palace_06", "White_Palace_07", "White_Palace_08", "White_Palace_09", "White_Palace_10", "White_Palace_11", "White_Palace_12", "White_Palace_13", "White_Palace_14", "White_Palace_15", "White_Palace_16", "White_Palace_17", "White_Palace_18", "White_Palace_19", "White_Palace_20", "Dream_Abyss", "Dream_Room_Believer_Shrine", "Dream_Backer_Shrine", "Dream_Guardian_Monomon", "Dream_Guardian_Lurien", "Dream_Guardian_Hegemol", "Dream_Mighty_Zote", "Dream_04_White_Defender", "Dream_02_Mage_Lord", "Dream_01_False_Knight", "Dream_Nailcollection", "Dream_03_Infected_Knight", "Room_Ouiji", "GG_Unlock_Wastes", "GG_Blue_Room", "GG_Workshop", "GG_Land_of_Storms", "GG_Atrium", "GG_Atrium_Roof", "GG_Engine", "GG_Engine_Prime", "GG_Unn", "GG_Engine_Root", "GG_Wyrm", "GG_Spa" };
 
-		private List<String> bossNames = new List<String> { "Dream Mage Lord", "Dung Defender", "Fluke Mother", "Ghost Warrior Galien", "Ghost Warrior Hu", "Ghost Warrior Markoth", "Ghost Warrior Marmu", "Ghost Warrior No Eyes", "Ghost Warrior Slug", "Ghost Warrior Xero", "Giant Buzzer Col", "Giant Fly", "Grey Prince", "Grimm Boss", "Head", "Hive Knight", "Hornet Boss 1", "Hornet Boss 2", "Infected Knight", "Jar Collector", "Jellyfish GG(Clone)", "Lancer", "Lobster", "Lost Kin", "Mage Knight", "Mage Lord", "Mantis Lord", "Mantis Lord S1", "Mantis Lord S2", "Mantis Traitor Lord", "Mawlek Body", "Mega Fat Bee", "Mega Fat Bee (1)", "Mega Zombie Beam Miner (1)", "Mimic Spider", "Nightmare Grimm Boss", "Radiance", "Radiance", "White Defender", "Zombie Beam Miner Rematch", "Hollow Knight Boss", "Mega Jellyfish" };
+		private List<String> bossNames = new List<String> { "Dream Mage Lord", "Dung Defender", "Fluke Mother", "Ghost Warrior Galien", "Ghost Warrior Hu", "Ghost Warrior Markoth", "Ghost Warrior Marmu", "Ghost Warrior No Eyes", "Ghost Warrior Slug", "Ghost Warrior Xero", "Giant Buzzer Col", "Giant Fly", "Grey Prince", "Grimm Boss", "Head", "Hive Knight", "Hornet Boss 1", "Hornet Boss 2", "Infected Knight", "Jar Collector", "Jellyfish GG(Clone)", "Lancer", "Lobster", "Lost Kin", "Mage Knight", "Mage Lord", "Mantis Lord", "Mantis Lord S1", "Mantis Lord S2", "Mantis Traitor Lord", "Mawlek Body", "Mega Fat Bee", "Mega Fat Bee (1)", "Mega Zombie Beam Miner (1)", "Mimic Spider", "Nightmare Grimm Boss", "Radiance", "White Defender", "Zombie Beam Miner Rematch", "Hollow Knight Boss", "Mega Jellyfish" };
 
 		private String hollowKnightArena = "Room_Final_Boss_Core";
 		private List<String> hollowKnight = new List<String> { "Idle", "Head", "Slash Antic", "Stun Fall", "Dstab Damage", "Counter", "Counter Antic", "Dash Antic", "Stun", "Roar Antic", "SelfStab Antic", "SmallShot", "Puppet Down", "Puppet Up", "ChestShot", "Dream Enter", "Hornet Collapse", "Collapse", "Boss Corpse" };
@@ -93,7 +93,6 @@ namespace HollowStomach
 			// when the game starts, i want to make sure you have full soul
 			HeroController.instance.SetMPCharge(99);
             GameCameras.instance.soulOrbFSM.SendEvent("MP GAIN");
-			//throw new NotImplementedException();
         }
 
 		private void pocketChange(Collider2D otherCollider)
@@ -150,7 +149,7 @@ namespace HollowStomach
 			if(getChange)
             {
 				int r = UnityEngine.Random.Range(0, maxChance + 1);
-				Log("Hit: " + r);
+				//Log("Hit: " + r);
 				if (r == 0)
                 {
 					pocketChange(otherCollider);
