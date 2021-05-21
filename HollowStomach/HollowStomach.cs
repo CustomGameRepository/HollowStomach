@@ -20,31 +20,39 @@ namespace HollowStomach
 	 *     - if you're in a dream sequence, SOUL doesn't drain but you're still subject to 
 	 *       starvation
 	 *     - being within some distance of a bench doesn't cause your SOUL to drain
-	 *     - picking up any Geo resets your SOUL to full 
+	 *     - picking up any Geo gives you 1/3 SOUL
+	 *	       - there should probably be a cooldown on this effect
 	 *     - being near a bench increases your SOUL to full at a rate of N/s
 	 *     - hitting a boss (hardcoded) drops geo
+	 *     - modifies certain text strings (in english) to tell you this information
+	 *     - works with all custom knight skins
 	 */
 	public class HollowStomach : Mod
     {
-        public override string GetVersion() => "0.7-alpha";
+        public override string GetVersion() => "0.9.0-beta";
 		public HollowStomach() : base("Hollow Stomach") { }
 		public float timer_SoulDrain = 0;
+		private readonly float soulDrainTimer = 0.3030303f; // interval to drain soul
+		private readonly int hungerLevel = 1; // how much soul to drain 
 		public float timer_SoulGain = 0;
+		private readonly int minSoul = 99; // minimum soul at resting
+		private readonly float soulGainTimer = 0.101010101f;
+		private readonly int minSoulGainInterval = 1;
 		public float timer_TakeDamage = 0;
-		private float soulDrainTimer = 0.4f; // interval to drain soul
-		public int hungerLevel = 2; // how much soul to drain 
-		private float soulGainTimer = 0.25f;
-		private float healthTimer = 2f; // health drain interval
-		private int minSoul = 99; // minimum soul at resting
-		private int minSoulGainInterval = 3;
-		private int bossGeoDropChance = 6; // 1/N chance for boss to drop geo
+		private readonly float healthTimer = 2f; // health drain interval
+		public float timer_RegainSoul = 0;
+        private readonly int bossGeoDropChance = 3; // boss drops geo every N hits
+		private readonly int soulPerGeo = 33;
+		private readonly float soulCooldown = 1.0f; // 
+		private bool eatingAllowed = true;
+		private int hitCounter = 0;
 		private bool shouldDamage = false;
 		public GameObject _smallGeo;
 		public GameObject SmallGeo => UnityEngine.Object.Instantiate(_smallGeo);
 
 		private bool debug = false; //TODO: TURN THIS OFF
 
-		private List<String> dreams = new List<String> {"White_Palace_01", "White_Palace_02", "White_Palace_03_hub", "White_Palace_04", "White_Palace_05", "White_Palace_06", "White_Palace_07", "White_Palace_08", "White_Palace_09", "White_Palace_10", "White_Palace_11", "White_Palace_12", "White_Palace_13", "White_Palace_14", "White_Palace_15", "White_Palace_16", "White_Palace_17", "White_Palace_18", "White_Palace_19", "White_Palace_20", "Dream_Abyss", "Dream_Room_Believer_Shrine", "Dream_Backer_Shrine", "Dream_Guardian_Monomon", "Dream_Guardian_Lurien", "Dream_Guardian_Hegemol", "Dream_Mighty_Zote", "Dream_04_White_Defender", "Dream_02_Mage_Lord", "Dream_01_False_Knight", "Dream_Nailcollection", "Dream_03_Infected_Knight", "Room_Ouiji", "GG_Unlock_Wastes", "GG_Blue_Room", "GG_Workshop", "GG_Land_of_Storms", "GG_Atrium", "GG_Atrium_Roof", "GG_Engine", "GG_Engine_Prime", "GG_Unn", "GG_Engine_Root", "GG_Wyrm", "GG_Spa" };
+		private List<String> dreams = new List<String> { "White_Palace_01", "White_Palace_02", "White_Palace_03_hub", "White_Palace_04", "White_Palace_05", "White_Palace_06", "White_Palace_07", "White_Palace_08", "White_Palace_09", "White_Palace_10", "White_Palace_11", "White_Palace_12", "White_Palace_13", "White_Palace_14", "White_Palace_15", "White_Palace_16", "White_Palace_17", "White_Palace_18", "White_Palace_19", "White_Palace_20", "Dream_Abyss", "Dream_Room_Believer_Shrine", "Dream_Backer_Shrine", "Dream_Guardian_Monomon", "Dream_Guardian_Lurien", "Dream_Guardian_Hegemol", "Dream_Mighty_Zote", "Dream_04_White_Defender", "Dream_02_Mage_Lord", "Dream_01_False_Knight", "Dream_Nailcollection", "Dream_03_Infected_Knight", "Room_Ouiji", "GG_Unlock_Wastes", "GG_Blue_Room", "GG_Workshop", "GG_Land_of_Storms", "GG_Atrium", "GG_Atrium_Roof", "GG_Engine", "GG_Engine_Prime", "GG_Unn", "GG_Engine_Root", "GG_Wyrm", "GG_Spa" };
 
 		private List<String> bossNames = new List<String> { "Dream Mage Lord", "Dung Defender", "Fluke Mother", "Ghost Warrior Galien", "Ghost Warrior Hu", "Ghost Warrior Markoth", "Ghost Warrior Marmu", "Ghost Warrior No Eyes", "Ghost Warrior Slug", "Ghost Warrior Xero", "Giant Buzzer Col", "Giant Fly", "Grey Prince", "Grimm Boss", "Head", "Hive Knight", "Hornet Boss 1", "Hornet Boss 2", "Infected Knight", "Jar Collector", "Jellyfish GG(Clone)", "Lancer", "Lobster", "Lost Kin", "Mage Knight", "Mage Lord", "Mantis Lord", "Mantis Lord S1", "Mantis Lord S2", "Mantis Traitor Lord", "Mawlek Body", "Mega Fat Bee", "Mega Fat Bee (1)", "Mega Zombie Beam Miner (1)", "Mimic Spider", "Nightmare Grimm Boss", "Radiance", "White Defender", "Zombie Beam Miner Rematch", "Hollow Knight Boss", "Mega Jellyfish" };
 
@@ -57,6 +65,9 @@ namespace HollowStomach
 		private String watcherKnightArena = "Ruins2_03";
 		private List<String> watcherKnights = new List<String> { "Black Knight 1", "Black Knight 2", "Black Knight 3", "Black Knight 4", "Black Knight 5", "Black Knight 6" };
 
+		private List<String> mageLordArena = new List<String> { "Ruins_24", "Dream_02_Mage_Lord" };
+		private List<String> mageLord = new List<String> { "Mage Lord", "Dream Mage Lord", "Wound Box", "Quake Box", "Mage Lord Phase2", "Head Box" };
+
 		private List<String> falseKnightArena = new List<String> { "Crossroads_10", "Dream_01_False_Knight" };
 		private List<String> baldurRooms = new List<String> { "Crossroads_ShamanTemple", "Crossroads_11_alt", "Fungus1_28"};
 		private List<String> smoldurs = new List<String> { "Spawn Roller v2", "Spawn Roller v2(Clone)" };
@@ -65,16 +76,26 @@ namespace HollowStomach
         {
             Log("Hollow Stomach v." + GetVersion());
 			ModHooks.Instance.SoulGainHook += NoSoul;
-			ModHooks.Instance.HeroUpdateHook += DrainSoul;
-			ModHooks.Instance.HeroUpdateHook += Starve;
-			ModHooks.Instance.HeroUpdateHook += shouldRefresh;
-			On.GeoCounter.AddGeo += getCherry;
+			ModHooks.Instance.HeroUpdateHook += DrainSoul; // drain the soul
+			ModHooks.Instance.HeroUpdateHook += Starve;    // die if you don't eat
+			ModHooks.Instance.HeroUpdateHook += checkNearBench; // are we near a bench
+			ModHooks.Instance.HeroUpdateHook += checkAddSoul; // these are confusingly named 
 			ModHooks.Instance.SlashHitHook += shakeDown;
-			ModHooks.Instance.NewGameHook += HandleNewGameSoul;
-			//ModHooks.Instance.SavegameLoadHook += HandleNewGameSoul;
+			On.GeoCounter.AddGeo += getCherry;
 			getPrefab();
 		}
 
+        private void checkAddSoul()
+        {
+			if (eatingAllowed)
+				return;
+			if (timer_RegainSoul >= soulCooldown)
+            {
+				timer_RegainSoul = 0;
+				eatingAllowed = true;
+            }
+			timer_RegainSoul += Time.deltaTime;
+        }
 
         public void getPrefab()
         {
@@ -87,12 +108,6 @@ namespace HollowStomach
 					_smallGeo = i;
 				}
             }
-        }
-		private void HandleNewGameSoul()
-        {
-			// when the game starts, i want to make sure you have full soul
-			HeroController.instance.SetMPCharge(99);
-            GameCameras.instance.soulOrbFSM.SendEvent("MP GAIN");
         }
 
 		private void pocketChange(Collider2D otherCollider)
@@ -107,7 +122,7 @@ namespace HollowStomach
 				AmountMin = 1,
 				AmountMax = 1,
 				SpeedMin = 15f,
-				SpeedMax = 30f,
+				SpeedMax = 45f,
 				AngleMin = 80f,
 				AngleMax = 115f
 			};
@@ -117,6 +132,7 @@ namespace HollowStomach
 
 		private void shakeDown(Collider2D otherCollider, GameObject gameObject)
         {
+			Log("HIT: " + otherCollider.gameObject.name);
 			bool getChange = false;
 			int maxChance = bossGeoDropChance;
 			// why are the hollow knight attacks different game objects
@@ -142,29 +158,40 @@ namespace HollowStomach
             {
 				getChange = true;
 			}
+			// WHY
+			else if (mageLordArena.Contains(GameManager.instance.sceneName) && mageLord.Contains(otherCollider.gameObject.name))
+			{
+				getChange = true;
+			}
 			else
-            {
+			{
 				getChange = bossNames.Contains(otherCollider.gameObject.name);
             }
 			if(getChange)
             {
-				int r = UnityEngine.Random.Range(0, maxChance + 1);
-				//Log("Hit: " + r);
-				if (r == 0)
+				hitCounter++;
+				if (hitCounter % maxChance == 0)
                 {
 					pocketChange(otherCollider);
+					hitCounter = 0;
                 }
-            }
+			}
 		}
 
 		private void getCherry(On.GeoCounter.orig_AddGeo orig, GeoCounter self, int geo)
         {
-			PlayerData.instance.AddMPCharge(99);
-			GameCameras.instance.soulOrbFSM.SendEvent("MP GAIN");
-			if (PlayerData.instance.GetInt("MPReserveMax") > 0)
+			if (eatingAllowed)
             {
-				GameCameras.instance.soulVesselFSM.SendEvent("MP GAIN");
-			}
+				eatingAllowed = false;
+				// technically this runs every time geo is added (i.e., shade collection)
+				// but thats not really a problem i care about, its fine
+				PlayerData.instance.AddMPCharge(soulPerGeo);
+				GameCameras.instance.soulOrbFSM.SendEvent("MP GAIN");
+				if (PlayerData.instance.GetInt("MPReserveMax") > 0)
+				{
+					GameCameras.instance.soulVesselFSM.SendEvent("MP GAIN");
+				}
+            }
 			orig(self, geo);
         }
 
@@ -186,7 +213,7 @@ namespace HollowStomach
 					 HeroController.instance.cState.recoilingLeft ||
 					 HeroController.instance.cState.recoilingRight ||
 					 HeroController.instance.cState.isPaused ||
-					 (HeroController.instance.controlReqlinquished && (!HeroController.instance.cState.superDashing || !HeroController.instance.cState.superDashOnWall ))
+					 (HeroController.instance.controlReqlinquished && !HeroController.instance.cState.superDashing && !HeroController.instance.cState.superDashOnWall )
 					 || (GameManager.instance.sceneName == kingsPass && PlayerData.instance.geo == 0)
 					 );
 		}
@@ -196,7 +223,7 @@ namespace HollowStomach
 			//Log("SCENE: " + GameManager.instance.sceneName + " " + (dreams.Contains(GameManager.instance.sceneName) ? "DREAM" : "NO DREAM") );
 			return dreams.Contains(GameManager.instance.sceneName);
         }
-        private void shouldRefresh()
+        private void checkNearBench()
         {
 			if (HeroController.instance.cState.nearBench)
 			{
