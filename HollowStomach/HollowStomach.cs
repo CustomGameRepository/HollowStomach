@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 using GlobalEnums;
 using Modding;
-using HutongGames.PlayMaker;
 using UnityEngine;
-using Random = System.Random;
 
 namespace HollowStomach
 {
@@ -21,15 +16,15 @@ namespace HollowStomach
 	 *       starvation
 	 *     - being within some distance of a bench doesn't cause your SOUL to drain
 	 *     - picking up any Geo gives you 1/3 SOUL
-	 *	       - there should probably be a cooldown on this effect
+	 *	   - picking up a random Purple Geo prevents SOUL from draining for N seconds and
+	 *	     gives you a speed boost
 	 *     - being near a bench increases your SOUL to full at a rate of N/s
 	 *     - hitting a boss (hardcoded) drops geo
-	 *     - modifies certain text strings (in english) to tell you this information
 	 *     - works with all custom knight skins
 	 */
 	public class HollowStomach : Mod
     {
-        public override string GetVersion() => "0.9.0-beta";
+        public override string GetVersion() => "1.0.0";
 		public HollowStomach() : base("Hollow Stomach") { }
 		public float timer_SoulDrain = 0;
 		private readonly float soulDrainTimer = 0.3030303f; // interval to drain soul
@@ -45,6 +40,11 @@ namespace HollowStomach
 		private readonly int soulPerGeo = 33;
 		private int hitCounter = 0;
 		private bool shouldDamage = false;
+		// purple cherries give you a speed boost and prevent soul from draining
+		private readonly int purpleCherry = 1000; // rate at which purple cherries drop
+		private readonly float purpleCherryTimegain = 6.0f;
+		private readonly float defaultRunSpeed = 8.3f;
+		private readonly float cherrySpeedBoost = 1.5f;
 		public GameObject _smallGeo;
 		public GameObject SmallGeo => UnityEngine.Object.Instantiate(_smallGeo);
 
@@ -84,19 +84,9 @@ namespace HollowStomach
 			ModHooks.Instance.HeroUpdateHook += checkNearBench; // are we near a bench
 			ModHooks.Instance.SlashHitHook += shakeDown;
 			On.GeoCounter.AddGeo += getCherry;
-			// right now, lighthouse/shade cloak is impossible, and while we're here, we might as well make it so you don't HAVE to save+quit out of other pickups
-			//ModHooks.Instance.SetPlayerBoolHook += checkRefreshingPickup;
 			getPrefab();
 		}
 
-        private void checkRefreshingPickup(string originalSet, bool value)
-        {
-			if(pickups.Contains(originalSet))
-            {
-				PlayerData.instance.AddMPCharge(99);
-				GameCameras.instance.soulOrbFSM.SendEvent("MP GAIN");
-			}
-		}
 
         public void getPrefab()
         {
@@ -192,6 +182,11 @@ namespace HollowStomach
 
 		private void getCherry(On.GeoCounter.orig_AddGeo orig, GeoCounter self, int geo)
         {
+			if(UnityEngine.Random.Range(0, purpleCherry) <= geo && geo < 26)
+            {
+				timer_SoulDrain = -1 * purpleCherryTimegain;
+				HeroController.instance.RUN_SPEED = cherrySpeedBoost * defaultRunSpeed;
+			}
 			// technically this runs every time geo is added (i.e., shade collection)
 			// but thats not really a problem i care about, its fine
 			PlayerData.instance.AddMPCharge(soulPerGeo);
@@ -228,7 +223,6 @@ namespace HollowStomach
 
 		private bool inDreamWorld()
         {
-			//Log("SCENE: " + GameManager.instance.sceneName + " " + (dreams.Contains(GameManager.instance.sceneName) ? "DREAM" : "NO DREAM") );
 			return dreams.Contains(GameManager.instance.sceneName);
         }
         private void checkNearBench()
@@ -298,10 +292,22 @@ namespace HollowStomach
 								shouldDamage = true;
 							}
                         }
+						HeroController.instance.RUN_SPEED = defaultRunSpeed;
 						timer_SoulDrain -= soulDrainTimer;
 					}
+					if (HeroController.instance.RUN_SPEED > defaultRunSpeed)
+                    {
+						if (PlayerData.instance.GetInt("MPReserveMax") > 0 && PlayerData.instance.GetInt("MPReserve") <= hungerLevel && PlayerData.instance.GetInt("MPCharge") < hungerLevel)
+						{
+							shouldDamage = true;
+						}
+						else
+						{
+							shouldDamage = false;
+						}
+                    }
 				}
-            }
+			}
 			else
             {
 				if (PlayerData.instance.GetInt("MPReserveMax") > 0 && PlayerData.instance.GetInt("MPReserve") <= hungerLevel && PlayerData.instance.GetInt("MPCharge") < hungerLevel)
