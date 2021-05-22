@@ -41,37 +41,40 @@ namespace HollowStomach
 		public float timer_TakeDamage = 0;
 		private readonly float healthTimer = 2f; // health drain interval
 		public float timer_RegainSoul = 0;
-        private readonly int bossGeoDropChance = 3; // boss drops geo every N hits
+        private readonly int bossGeoDropChance = 6; // boss drops geo every N hits
 		private readonly int soulPerGeo = 33;
-		private readonly float soulCooldown = 1.0f; // 
-		private bool eatingAllowed = true;
 		private int hitCounter = 0;
 		private bool shouldDamage = false;
 		public GameObject _smallGeo;
 		public GameObject SmallGeo => UnityEngine.Object.Instantiate(_smallGeo);
 
-		private bool debug = false; //TODO: TURN THIS OFF
+		private readonly bool debug = false; //TODO: TURN THIS OFF
 
-		private List<String> dreams = new List<String> { "White_Palace_01", "White_Palace_02", "White_Palace_03_hub", "White_Palace_04", "White_Palace_05", "White_Palace_06", "White_Palace_07", "White_Palace_08", "White_Palace_09", "White_Palace_10", "White_Palace_11", "White_Palace_12", "White_Palace_13", "White_Palace_14", "White_Palace_15", "White_Palace_16", "White_Palace_17", "White_Palace_18", "White_Palace_19", "White_Palace_20", "Dream_Abyss", "Dream_Room_Believer_Shrine", "Dream_Backer_Shrine", "Dream_Guardian_Monomon", "Dream_Guardian_Lurien", "Dream_Guardian_Hegemol", "Dream_Mighty_Zote", "Dream_04_White_Defender", "Dream_02_Mage_Lord", "Dream_01_False_Knight", "Dream_Nailcollection", "Dream_03_Infected_Knight", "Room_Ouiji", "GG_Unlock_Wastes", "GG_Blue_Room", "GG_Workshop", "GG_Land_of_Storms", "GG_Atrium", "GG_Atrium_Roof", "GG_Engine", "GG_Engine_Prime", "GG_Unn", "GG_Engine_Root", "GG_Wyrm", "GG_Spa" };
+		private readonly List<String> dreams = new List<String> { "White_Palace_01", "White_Palace_02", "White_Palace_03_hub", "White_Palace_04", "White_Palace_05", "White_Palace_06", "White_Palace_07", "White_Palace_08", "White_Palace_09", "White_Palace_10", "White_Palace_11", "White_Palace_12", "White_Palace_13", "White_Palace_14", "White_Palace_15", "White_Palace_16", "White_Palace_17", "White_Palace_18", "White_Palace_19", "White_Palace_20", "Dream_Abyss", "Dream_Room_Believer_Shrine", "Dream_Backer_Shrine", "Dream_Guardian_Monomon", "Dream_Guardian_Lurien", "Dream_Guardian_Hegemol", "Dream_Mighty_Zote", "Dream_04_White_Defender", "Dream_02_Mage_Lord", "Dream_01_False_Knight", "Dream_Nailcollection", "Dream_03_Infected_Knight", "Room_Ouiji", "GG_Unlock_Wastes", "GG_Blue_Room", "GG_Workshop", "GG_Land_of_Storms", "GG_Atrium", "GG_Atrium_Roof", "GG_Engine", "GG_Engine_Prime", "GG_Unn", "GG_Engine_Root", "GG_Wyrm", "GG_Spa", "Abyss_06_Core", "Abyss_08", "Abyss_15", "Abyss_16", "Abyss_09", "Abyss_Lighthouse_Room", "Abyss_10" };
+		// the abyss was softlocking you so this is the only real workaround, it's not ideal but i have no better ideas
 
-		private List<String> bossNames = new List<String> { "Dream Mage Lord", "Dung Defender", "Fluke Mother", "Ghost Warrior Galien", "Ghost Warrior Hu", "Ghost Warrior Markoth", "Ghost Warrior Marmu", "Ghost Warrior No Eyes", "Ghost Warrior Slug", "Ghost Warrior Xero", "Giant Buzzer Col", "Giant Fly", "Grey Prince", "Grimm Boss", "Head", "Hive Knight", "Hornet Boss 1", "Hornet Boss 2", "Infected Knight", "Jar Collector", "Jellyfish GG(Clone)", "Lancer", "Lobster", "Lost Kin", "Mage Knight", "Mage Lord", "Mantis Lord", "Mantis Lord S1", "Mantis Lord S2", "Mantis Traitor Lord", "Mawlek Body", "Mega Fat Bee", "Mega Fat Bee (1)", "Mega Zombie Beam Miner (1)", "Mimic Spider", "Nightmare Grimm Boss", "Radiance", "White Defender", "Zombie Beam Miner Rematch", "Hollow Knight Boss", "Mega Jellyfish" };
+		private readonly List<String> bossNames = new List<String> { "Dream Mage Lord", "Dung Defender", "Fluke Mother", "Ghost Warrior Galien", "Ghost Warrior Hu", "Ghost Warrior Markoth", "Ghost Warrior Marmu", "Ghost Warrior No Eyes", "Ghost Warrior Slug", "Ghost Warrior Xero", "Giant Buzzer Col", "Giant Fly", "Grey Prince", "Grimm Boss", "Head", "Hive Knight", "Hornet Boss 1", "Hornet Boss 2", "Infected Knight", "Jar Collector", "Jellyfish GG(Clone)", "Lancer", "Lobster", "Lost Kin", "Mage Knight", "Mage Lord", "Mantis Lord", "Mantis Lord S1", "Mantis Lord S2", "Mantis Traitor Lord", "Mawlek Body", "Mega Fat Bee", "Mega Fat Bee (1)", "Mega Zombie Beam Miner (1)", "Mimic Spider", "Nightmare Grimm Boss", "Radiance", "White Defender", "Zombie Beam Miner Rematch", "Hollow Knight Boss", "Mega Jellyfish" };
 
-		private String hollowKnightArena = "Room_Final_Boss_Core";
-		private List<String> hollowKnight = new List<String> { "Idle", "Head", "Slash Antic", "Stun Fall", "Dstab Damage", "Counter", "Counter Antic", "Dash Antic", "Stun", "Roar Antic", "SelfStab Antic", "SmallShot", "Puppet Down", "Puppet Up", "ChestShot", "Dream Enter", "Hornet Collapse", "Collapse", "Boss Corpse" };
+		private readonly String hollowKnightArena = "Room_Final_Boss_Core";
+		private readonly List<String> hollowKnight = new List<String> { "Idle", "Head", "Slash Antic", "Stun Fall", "Dstab Damage", "Counter", "Counter Antic", "Dash Antic", "Stun", "Roar Antic", "SelfStab Antic", "SmallShot", "Puppet Down", "Puppet Up", "ChestShot", "Dream Enter", "Hornet Collapse", "Collapse", "Boss Corpse" };
 
-		private String mossyArena = "Fungus1_29";
-		private List<String> mossyPet = new List<String> { "Charge Hit", "Leap Hit", "Burrow Hit" };
+		private readonly String mossyArena = "Fungus1_29";
+		private readonly List<String> mossyPet = new List<String> { "Charge Hit", "Leap Hit", "Burrow Hit" };
 
-		private String watcherKnightArena = "Ruins2_03";
-		private List<String> watcherKnights = new List<String> { "Black Knight 1", "Black Knight 2", "Black Knight 3", "Black Knight 4", "Black Knight 5", "Black Knight 6" };
+		private readonly String watcherKnightArena = "Ruins2_03";
+		private readonly List<String> watcherKnights = new List<String> { "Black Knight 1", "Black Knight 2", "Black Knight 3", "Black Knight 4", "Black Knight 5", "Black Knight 6" };
 
-		private List<String> mageLordArena = new List<String> { "Ruins_24", "Dream_02_Mage_Lord" };
-		private List<String> mageLord = new List<String> { "Mage Lord", "Dream Mage Lord", "Wound Box", "Quake Box", "Mage Lord Phase2", "Head Box" };
+		private readonly List<String> mageLordArena = new List<String> { "Ruins_24", "Dream_02_Mage_Lord" };
+		private readonly List<String> mageLord = new List<String> { "Mage Lord", "Dream Mage Lord", "Wound Box", "Quake Box", "Mage Lord Phase2", "Head Box", "Dream Mage Lord Phase2" };
 
-		private List<String> falseKnightArena = new List<String> { "Crossroads_10", "Dream_01_False_Knight" };
-		private List<String> baldurRooms = new List<String> { "Crossroads_ShamanTemple", "Crossroads_11_alt", "Fungus1_28"};
-		private List<String> smoldurs = new List<String> { "Spawn Roller v2", "Spawn Roller v2(Clone)" };
-		private String kingsPass = "Tutorial_01";
+		private readonly List<String> falseKnightArena = new List<String> { "Crossroads_10", "Dream_01_False_Knight" };
+		private readonly String uumuuArena = "Fungus3_archive_02";
+		private readonly List<String> baldurRooms = new List<String> { "Crossroads_ShamanTemple", "Crossroads_11_alt", "Fungus1_28"};
+		private readonly List<String> smoldurs = new List<String> { "Spawn Roller v2", "Spawn Roller v2(Clone)" };
+		private readonly String kingsPass = "Tutorial_01";
+
+		// i want to refill soul on certain pickups, to avoid softlocking players there. this holds the bools to check against
+		private readonly List<String> pickups = new List<String> { "hasSuperDash", "hasShadowDash", "hasAcidArmor", "hasDoubleJump", "hasKingsBrand", "hasSpell" };
 		public override void Initialize()
         {
             Log("Hollow Stomach v." + GetVersion());
@@ -79,23 +82,21 @@ namespace HollowStomach
 			ModHooks.Instance.HeroUpdateHook += DrainSoul; // drain the soul
 			ModHooks.Instance.HeroUpdateHook += Starve;    // die if you don't eat
 			ModHooks.Instance.HeroUpdateHook += checkNearBench; // are we near a bench
-			ModHooks.Instance.HeroUpdateHook += checkAddSoul; // these are confusingly named 
 			ModHooks.Instance.SlashHitHook += shakeDown;
 			On.GeoCounter.AddGeo += getCherry;
+			// right now, lighthouse/shade cloak is impossible, and while we're here, we might as well make it so you don't HAVE to save+quit out of other pickups
+			//ModHooks.Instance.SetPlayerBoolHook += checkRefreshingPickup;
 			getPrefab();
 		}
 
-        private void checkAddSoul()
+        private void checkRefreshingPickup(string originalSet, bool value)
         {
-			if (eatingAllowed)
-				return;
-			if (timer_RegainSoul >= soulCooldown)
+			if(pickups.Contains(originalSet))
             {
-				timer_RegainSoul = 0;
-				eatingAllowed = true;
-            }
-			timer_RegainSoul += Time.deltaTime;
-        }
+				PlayerData.instance.AddMPCharge(99);
+				GameCameras.instance.soulOrbFSM.SendEvent("MP GAIN");
+			}
+		}
 
         public void getPrefab()
         {
@@ -152,7 +153,7 @@ namespace HollowStomach
 			else if (baldurRooms.Contains(GameManager.instance.sceneName) && smoldurs.Contains(otherCollider.gameObject.name))
 			{
 				getChange = true;
-				maxChance = 0;
+				maxChance = 1;
 			}
 			else if (GameManager.instance.sceneName == watcherKnightArena && watcherKnights.Contains(otherCollider.gameObject.name))
             {
@@ -162,6 +163,17 @@ namespace HollowStomach
 			else if (mageLordArena.Contains(GameManager.instance.sceneName) && mageLord.Contains(otherCollider.gameObject.name))
 			{
 				getChange = true;
+			}
+			else if (GameManager.instance.sceneName == uumuuArena && otherCollider.gameObject.name == "Mega Jellyfish")
+            {
+				getChange = true;
+				maxChance = 1;
+			}
+			// avoid softlocks at lurien and monomon
+			else if (otherCollider.gameObject.name == "Dreamer NPC")
+            {
+				PlayerData.instance.AddMPCharge(99);
+				GameCameras.instance.soulOrbFSM.SendEvent("MP GAIN");
 			}
 			else
 			{
@@ -180,18 +192,14 @@ namespace HollowStomach
 
 		private void getCherry(On.GeoCounter.orig_AddGeo orig, GeoCounter self, int geo)
         {
-			if (eatingAllowed)
-            {
-				eatingAllowed = false;
-				// technically this runs every time geo is added (i.e., shade collection)
-				// but thats not really a problem i care about, its fine
-				PlayerData.instance.AddMPCharge(soulPerGeo);
-				GameCameras.instance.soulOrbFSM.SendEvent("MP GAIN");
-				if (PlayerData.instance.GetInt("MPReserveMax") > 0)
-				{
-					GameCameras.instance.soulVesselFSM.SendEvent("MP GAIN");
-				}
-            }
+			// technically this runs every time geo is added (i.e., shade collection)
+			// but thats not really a problem i care about, its fine
+			PlayerData.instance.AddMPCharge(soulPerGeo);
+			GameCameras.instance.soulOrbFSM.SendEvent("MP GAIN");
+			if (PlayerData.instance.GetInt("MPReserveMax") > 0)
+			{
+				GameCameras.instance.soulVesselFSM.SendEvent("MP GAIN");
+			}
 			orig(self, geo);
         }
 
