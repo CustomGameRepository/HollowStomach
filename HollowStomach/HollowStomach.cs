@@ -23,10 +23,10 @@ namespace HollowStomach
 	 *     - works with all custom knight skins
 	 */
 	public class HollowStomach : Mod
-    {
-        public override string GetVersion() => "1.0.0";
-		public HollowStomach() : base("Hollow Stomach") { }
-		public float timer_SoulDrain = 0;
+	{
+	 	public override string GetVersion() => "1.0.0";
+	 	public HollowStomach() : base("Hollow Stomach") { }
+	 	public float timer_SoulDrain = 0;
 		private readonly float soulDrainTimer = 0.3030303f; // interval to drain soul
 		private readonly int hungerLevel = 1; // how much soul to drain 
 		public float timer_SoulGain = 0;
@@ -37,9 +37,9 @@ namespace HollowStomach
 		private readonly float healthTimer = 2f; // health drain interval
 		public float timer_RegainSoul = 0;
         private readonly int bossGeoDropChance = 6; // boss drops geo every N hits
-		private readonly int soulPerGeo = 33;
-		private int hitCounter = 0;
-		private bool shouldDamage = false;
+        private readonly int soulPerGeo = 33;
+        private int hitCounter = 0;
+        private bool shouldDamage = false;
 		// purple cherries give you a speed boost and prevent soul from draining
 		private readonly int purpleCherry = 1000; // rate at which purple cherries drop
 		private readonly float purpleCherryTimegain = 6.0f;
@@ -76,8 +76,8 @@ namespace HollowStomach
 		// i want to refill soul on certain pickups, to avoid softlocking players there. this holds the bools to check against
 		private readonly List<String> pickups = new List<String> { "hasSuperDash", "hasShadowDash", "hasAcidArmor", "hasDoubleJump", "hasKingsBrand", "hasSpell" };
 		public override void Initialize()
-        {
-            Log("Hollow Stomach v." + GetVersion());
+		{
+			Log("Hollow Stomach v." + GetVersion());
 			ModHooks.Instance.SoulGainHook += NoSoul;
 			ModHooks.Instance.HeroUpdateHook += DrainSoul; // drain the soul
 			ModHooks.Instance.HeroUpdateHook += Starve;    // die if you don't eat
@@ -88,21 +88,21 @@ namespace HollowStomach
 		}
 
 
-        public void getPrefab()
-        {
+		public void getPrefab()
+		{
 			// this is very bad but it will work
 			Resources.LoadAll<GameObject>("");
 			foreach (GameObject i in Resources.FindObjectsOfTypeAll<GameObject>())
-            {
+			{
 				if(i.name == "Geo Small")
-                {
+				{
 					_smallGeo = i;
 				}
-            }
-        }
+			}
+		}
 
 		private void pocketChange(Collider2D otherCollider)
-        {
+		{
 			// thanks randomizer3.0
 			GameObject smallPrefab = _smallGeo;
 			UnityEngine.Object.Destroy(smallPrefab.Spawn());
@@ -122,16 +122,16 @@ namespace HollowStomach
 		}
 
 		private void shakeDown(Collider2D otherCollider, GameObject gameObject)
-        {
+		{
 			Log("HIT: " + otherCollider.gameObject.name);
 			bool getChange = false;
 			int maxChance = bossGeoDropChance;
 			// why are the hollow knight attacks different game objects
 			// i hate this
 			if(GameManager.instance.sceneName == hollowKnightArena && hollowKnight.Contains(otherCollider.gameObject.name))
-            {
+			{
 				getChange = true;
-            }
+			}
 			else if (GameManager.instance.sceneName == mossyArena && mossyPet.Contains(otherCollider.gameObject.name))
 			{
 				getChange = true;
@@ -146,7 +146,7 @@ namespace HollowStomach
 				maxChance = 1;
 			}
 			else if (GameManager.instance.sceneName == watcherKnightArena && watcherKnights.Contains(otherCollider.gameObject.name))
-            {
+			{
 				getChange = true;
 			}
 			// WHY
@@ -155,35 +155,35 @@ namespace HollowStomach
 				getChange = true;
 			}
 			else if (GameManager.instance.sceneName == uumuuArena && otherCollider.gameObject.name == "Mega Jellyfish")
-            {
+			{
 				getChange = true;
 				maxChance = 1;
 			}
 			// avoid softlocks at lurien and monomon
 			else if (otherCollider.gameObject.name == "Dreamer NPC")
-            {
+			{
 				PlayerData.instance.AddMPCharge(99);
 				GameCameras.instance.soulOrbFSM.SendEvent("MP GAIN");
 			}
 			else
 			{
 				getChange = bossNames.Contains(otherCollider.gameObject.name);
-            }
+			}
 			if(getChange)
-            {
+			{
 				hitCounter++;
 				if (hitCounter % maxChance == 0)
-                {
+				{
 					pocketChange(otherCollider);
 					hitCounter = 0;
-                }
+				}
 			}
 		}
 
 		private void getCherry(On.GeoCounter.orig_AddGeo orig, GeoCounter self, int geo)
-        {
+		{
 			if(UnityEngine.Random.Range(0, purpleCherry) <= geo && geo < 26)
-            {
+			{
 				timer_SoulDrain = -1 * purpleCherryTimegain;
 				HeroController.instance.RUN_SPEED = cherrySpeedBoost * defaultRunSpeed;
 			}
@@ -196,17 +196,17 @@ namespace HollowStomach
 				GameCameras.instance.soulVesselFSM.SendEvent("MP GAIN");
 			}
 			orig(self, geo);
-        }
+		}
 
-        private bool shouldDrain()
-        {
+		private bool shouldDrain()
+		{
 		 	// check if they're in a state in which we don't drain soul
 			// including if they're in king's pass with no geo, which i'm
 			// assuming means it's a new file. this is possible to abuse,
 			// but it's king's pass, what's the worst that can happen?
 			return !(GameManager.instance.IsCinematicScene() ||
-				     GameManager.instance.IsNonGameplayScene() ||
-				     HeroController.instance.cState.dead ||
+					 GameManager.instance.IsNonGameplayScene() ||
+					 HeroController.instance.cState.dead ||
 					 HeroController.instance.cState.hazardDeath ||
 					 HeroController.instance.cState.hazardRespawning ||
 					 HeroController.instance.cState.transitioning ||
@@ -218,20 +218,21 @@ namespace HollowStomach
 					 HeroController.instance.cState.isPaused ||
 					 (HeroController.instance.controlReqlinquished && !HeroController.instance.cState.superDashing && !HeroController.instance.cState.superDashOnWall )
 					 || (GameManager.instance.sceneName == kingsPass && PlayerData.instance.geo == 0)
-					 );
+				);
 		}
 
 		private bool inDreamWorld()
-        {
+		{
 			return dreams.Contains(GameManager.instance.sceneName);
-        }
-        private void checkNearBench()
-        {
+		}
+
+		private void checkNearBench()
+		{
 			if (HeroController.instance.cState.nearBench)
 			{
 				timer_SoulGain += Time.deltaTime;
 				while (timer_SoulGain >= soulGainTimer)
-                {
+				{
 					if (PlayerData.instance.GetInt("MPCharge") <= minSoul)
 					{
 						PlayerData.instance.AddMPCharge(minSoulGainInterval);
@@ -240,10 +241,10 @@ namespace HollowStomach
 					timer_SoulGain -= soulGainTimer;
 				}
 			}
-        }
+		}
 
 		public bool vesselDrained()
-        {
+		{
 			if (PlayerData.instance.GetInt("MPReserveMax") > 0)
 			{
 				if (PlayerData.instance.GetInt("MPReserve") > hungerLevel)
@@ -259,28 +260,28 @@ namespace HollowStomach
 					PlayerData.instance.TakeReserveMP(PlayerData.instance.GetInt("MPReserve"));
 					PlayerData.instance.TakeMP(overflow);
 					if(overflow < 0)
-                    {
+					{
 						GameCameras.instance.soulVesselFSM.SendEvent("MP RESERVE DOWN");
-                    }
+					}
 					GameCameras.instance.soulOrbFSM.SendEvent("MP DRAIN");
 					shouldDamage = false;
 					return true;
 				}
 			}
 			return true;
-        }
+		}
 
 		public void DrainSoul()
 		{
 			if (!inDreamWorld() && !debug)
-            {
+			{
 				if (shouldDrain())
 				{
 					timer_SoulDrain += Time.deltaTime;
 					while (timer_SoulDrain >= soulDrainTimer)
 					{
 						if(vesselDrained())
-                        {
+						{
 							if (PlayerData.instance.GetInt("MPCharge") >= hungerLevel)
 							{
 								PlayerData.instance.TakeMP(hungerLevel);
@@ -291,12 +292,12 @@ namespace HollowStomach
 							{
 								shouldDamage = true;
 							}
-                        }
+						}
 						HeroController.instance.RUN_SPEED = defaultRunSpeed;
 						timer_SoulDrain -= soulDrainTimer;
 					}
 					if (HeroController.instance.RUN_SPEED > defaultRunSpeed)
-                    {
+					{
 						if (PlayerData.instance.GetInt("MPReserveMax") > 0 && PlayerData.instance.GetInt("MPReserve") <= hungerLevel && PlayerData.instance.GetInt("MPCharge") < hungerLevel)
 						{
 							shouldDamage = true;
@@ -305,25 +306,26 @@ namespace HollowStomach
 						{
 							shouldDamage = false;
 						}
-                    }
+					}
 				}
 			}
 			else
-            {
+			{
 				if (PlayerData.instance.GetInt("MPReserveMax") > 0 && PlayerData.instance.GetInt("MPReserve") <= hungerLevel && PlayerData.instance.GetInt("MPCharge") < hungerLevel)
-                {
+				{
 					shouldDamage = true;
 				}
 				else
-                {
+				{
 					shouldDamage = false;
 				}
 			}
-        }
+		}
+
 		public void Starve()
 		{
 			if (shouldDamage && shouldDrain() && !debug)
-            {
+			{
 				timer_TakeDamage += Time.deltaTime;
 				while (timer_TakeDamage >= healthTimer)
 				{
@@ -333,13 +335,12 @@ namespace HollowStomach
 					}
 					timer_TakeDamage -= healthTimer;
 				}
-            }
+			}
 		}
 
 		private int NoSoul(int amount)
-        {
+		{
 			return (debug ? amount : 0);
-        }
-
+		}
 	}
 }
