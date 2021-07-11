@@ -10,6 +10,7 @@ Drag ```HollowStomach.dll``` to the mods folder of your Hollow Knight installati
 - If your SOUL runs out, you start to *starve*. Every 2 seconds, you take 1 damage.
 - Picking up any Geo grants the Knight 33 SOUL.
 - Geo pickups have a chance to be rare *purple Geo* pickups, which increase your movement speed and prevent SOUL drain for 6 seconds.
+- Starvation Mode: a much harder version that may or may not be beatable!
 
 ### Quality of Life
 - SOUL drain does not take effect until you first pick up Geo.
@@ -23,4 +24,6 @@ Drag ```HollowStomach.dll``` to the mods folder of your Hollow Knight installati
 - Ensure that every boss properly drops Geo.
 - Get this in the Mod Installer.
 - Figure out how to get around the Geo restrictions in Godhome.
-- Make Soul Catcher/Eater actually do something.
+
+### Known Issues
+- Dying before reaching a bench after a hardsave may cause a softlock.
