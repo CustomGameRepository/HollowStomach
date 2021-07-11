@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using GlobalEnums;
 using Modding;
+using HutongGames.PlayMaker;
 using UnityEngine;
 
 namespace HollowStomach
@@ -38,7 +39,9 @@ namespace HollowStomach
 		public float timer_RegainSoul = 0;
         private int bossGeoDropChance; // boss drops geo every N hits
 		private int soulPerGeo;
-        private int hitCounter = 0;
+		private int soulPerGeoBuffedMin;
+		private int soulPerGeoBuffedMax;
+		private int hitCounter = 0;
         private bool shouldDamage = false;
 		// purple cherries give you a speed boost and prevent soul from draining
 		private int purpleCherry = 1000; // rate at which purple cherries drop
@@ -84,9 +87,11 @@ namespace HollowStomach
 		private readonly List<String> baldurRooms = new List<String> { "Crossroads_ShamanTemple", "Crossroads_11_alt", "Fungus1_28"};
 		private readonly List<String> smoldurs = new List<String> { "Spawn Roller v2", "Spawn Roller v2(Clone)" };
 		private readonly String kingsPass = "Tutorial_01";
+		private readonly String blueLake = "Crossroads_50";
 
 		// i want to refill soul on certain pickups, to avoid softlocking players there. this holds the bools to check against
-		private readonly List<String> pickups = new List<String> { "hasSuperDash", "hasShadowDash", "hasAcidArmor", "hasDoubleJump", "hasKingsBrand", "hasSpell" };
+		private readonly List<String> antiSoftlockBools = new List<String> { "hegemolDefeated", "monomonDefeated", "lurienDefeated", "hasDash", "hasSuperDash", "hasShadowDash", "hasAcidArmor", "hasDoubleJump", "hasKingsBrand", "hasSpell" };
+
 		public override void Initialize()
 		{
 			Log("Hollow Stomach v." + GetVersion());
@@ -95,20 +100,49 @@ namespace HollowStomach
 			ModHooks.Instance.HeroUpdateHook += Starve;    // die if you don't eat
 			ModHooks.Instance.HeroUpdateHook += checkNearBench; // are we near a bench
 			ModHooks.Instance.SlashHitHook += shakeDown;
+			ModHooks.Instance.SetPlayerBoolHook += antiSoftlock;
 			On.GeoCounter.AddGeo += getCherry;
+			On.EnemyDreamnailReaction.RecieveDreamImpact += nerfDreamNail; // sure
 			getPrefab();
 			Log("Hollow Stomach: " + (Settings.starvationMode ? "Starvation Mode" : "Normal Mode" ));
 
-			purpleCherry = (Settings.starvationMode ? 250 : 1000);
+			//no gathering swarm allowed
+			PlayerData.instance.SetInt("charmCost_3", 6);
+			//dream wielder is very strong, increasing cost
+			PlayerData.instance.SetInt("charmCost_30", 2);
+
+			purpleCherry = (Settings.starvationMode ? 500 : 1000);
 			purpleCherryTimegain = (Settings.starvationMode ? 3.0f : 6.0f);
 			soulDrainTimer = (Settings.starvationMode ? 0.4040404f : 0.3030303f);
 			hungerLevel = (Settings.starvationMode ? 2 : 1);
-			minSoul = (Settings.starvationMode ? 99 : 99);
-			bossGeoDropChance = (Settings.starvationMode ? 9 : 6);
+			minSoul = (Settings.starvationMode ? 88 : 99);
+			bossGeoDropChance = (Settings.starvationMode ? 12 : 6);
 			soulPerGeo = (Settings.starvationMode ? 22 : 33);
+			soulPerGeoBuffedMin = (Settings.starvationMode ? 6 : 9);
+			soulPerGeoBuffedMax = (Settings.starvationMode ? 16 : 24);
 		}
 
-		public void getPrefab()
+		// this is a hack, but it works, so
+		// it's a little buggy if you have vessels, but it functions so
+        private void nerfDreamNail(On.EnemyDreamnailReaction.orig_RecieveDreamImpact orig, EnemyDreamnailReaction self)
+        {
+			orig(self);
+			int amount = (!GameManager.instance.playerData.GetBool("equippedCharm_30")) ? 33 : 66;
+			PlayerData.instance.TakeMP(Settings.starvationMode ? amount : (amount == 66 ? 33 : 16 ) );
+			GameCameras.instance.soulOrbFSM.SendEvent("MP DRAIN");
+		}
+
+		// TRY to prevent softlocks
+		private void antiSoftlock(string originalSet, bool value)
+        {
+			if(antiSoftlockBools.Contains(originalSet))
+            {
+				PlayerData.instance.AddMPCharge(99);
+				GameCameras.instance.soulOrbFSM.SendEvent("MP GAIN");
+			}
+		}
+
+        public void getPrefab()
 		{
 			// this is very bad but it will work
 			Resources.LoadAll<GameObject>("");
@@ -145,7 +179,7 @@ namespace HollowStomach
 		{
 			Log("HIT: " + otherCollider.gameObject.name);
 			bool getChange = false;
-			int maxChance = (Settings.starvationMode ? bossGeoDropChance * 2 : bossGeoDropChance);
+			int maxChance = bossGeoDropChance;
 			// why are the hollow knight attacks different game objects
 			// i hate this
 			if(GameManager.instance.sceneName == hollowKnightArena && hollowKnight.Contains(otherCollider.gameObject.name))
@@ -210,6 +244,14 @@ namespace HollowStomach
 			}
 			// technically this runs every time geo is added (i.e., shade collection)
 			// but thats not really a problem i care about, its fine
+			if(PlayerData.instance.GetBool("equippedCharm_20"))
+            {
+				PlayerData.instance.AddMPCharge(soulPerGeoBuffedMin);
+			}
+			if (PlayerData.instance.GetBool("equippedCharm_21"))
+			{
+				PlayerData.instance.AddMPCharge(soulPerGeoBuffedMax);
+			}
 			PlayerData.instance.AddMPCharge(soulPerGeo);
 			GameCameras.instance.soulOrbFSM.SendEvent("MP GAIN");
 			if (PlayerData.instance.GetInt("MPReserveMax") > 0)
@@ -298,6 +340,7 @@ namespace HollowStomach
 			{
 				if (shouldDrain())
 				{
+					hungerLevel = (Settings.starvationMode && !PlayerData.instance.GetBool("soulLimited") && GameManager.instance.sceneName != blueLake ? 2 : 1);
 					timer_SoulDrain += Time.deltaTime;
 					while (timer_SoulDrain >= soulDrainTimer)
 					{
