@@ -24,20 +24,20 @@ namespace HollowStomach
 	 */
 	public class HollowStomach : Mod
 	{
-	 	public override string GetVersion() => "1.0.0";
+	 	public override string GetVersion() => "1.1.0";
 	 	public HollowStomach() : base("Hollow Stomach") { }
 	 	public float timer_SoulDrain = 0;
 		private readonly float soulDrainTimer = 0.3030303f; // interval to drain soul
-		private readonly int hungerLevel = 1; // how much soul to drain 
+		private int hungerLevel = 1; // how much soul to drain 
 		public float timer_SoulGain = 0;
-		private readonly int minSoul = 99; // minimum soul at resting
+		private int minSoul = 99; // minimum soul at resting
 		private readonly float soulGainTimer = 0.101010101f;
 		private readonly int minSoulGainInterval = 1;
 		public float timer_TakeDamage = 0;
 		private readonly float healthTimer = 2f; // health drain interval
 		public float timer_RegainSoul = 0;
-        private readonly int bossGeoDropChance = 6; // boss drops geo every N hits
-        private readonly int soulPerGeo = 33;
+        private int bossGeoDropChance = 6; // boss drops geo every N hits
+		private int soulPerGeo;// = 33;
         private int hitCounter = 0;
         private bool shouldDamage = false;
 		// purple cherries give you a speed boost and prevent soul from draining
@@ -47,6 +47,18 @@ namespace HollowStomach
 		private readonly float cherrySpeedBoost = 1.5f;
 		public GameObject _smallGeo;
 		public GameObject SmallGeo => UnityEngine.Object.Instantiate(_smallGeo);
+
+		private class MyGlobalSettings : Modding.ModSettings
+		{
+			public bool starvationMode = false;
+		}
+
+		private MyGlobalSettings Settings = new MyGlobalSettings();
+		public override Modding.ModSettings GlobalSettings
+		{
+			get => Settings;
+			set => Settings = (MyGlobalSettings)value;
+		}
 
 		private readonly bool debug = false; //TODO: TURN THIS OFF
 
@@ -85,6 +97,12 @@ namespace HollowStomach
 			ModHooks.Instance.SlashHitHook += shakeDown;
 			On.GeoCounter.AddGeo += getCherry;
 			getPrefab();
+			Log("Hollow Stomach: " + (Settings.starvationMode ? "Starvation Mode" : "Normal Mode" ));
+
+			hungerLevel = (Settings.starvationMode ? hungerLevel * 2 : hungerLevel);
+			minSoul = (Settings.starvationMode ? minSoul * 2 : minSoul);
+			bossGeoDropChance = (Settings.starvationMode ? bossGeoDropChance * 2 : bossGeoDropChance);
+			soulPerGeo = (Settings.starvationMode ? 21 : 33);
 		}
 
 
@@ -125,7 +143,7 @@ namespace HollowStomach
 		{
 			Log("HIT: " + otherCollider.gameObject.name);
 			bool getChange = false;
-			int maxChance = bossGeoDropChance;
+			int maxChance = (Settings.starvationMode ? bossGeoDropChance * 2 : bossGeoDropChance);
 			// why are the hollow knight attacks different game objects
 			// i hate this
 			if(GameManager.instance.sceneName == hollowKnightArena && hollowKnight.Contains(otherCollider.gameObject.name))
@@ -157,7 +175,7 @@ namespace HollowStomach
 			else if (GameManager.instance.sceneName == uumuuArena && otherCollider.gameObject.name == "Mega Jellyfish")
 			{
 				getChange = true;
-				maxChance = 1;
+				maxChance = (Settings.starvationMode ? 3 : 1);
 			}
 			// avoid softlocks at lurien and monomon
 			else if (otherCollider.gameObject.name == "Dreamer NPC")
@@ -182,7 +200,7 @@ namespace HollowStomach
 
 		private void getCherry(On.GeoCounter.orig_AddGeo orig, GeoCounter self, int geo)
 		{
-			if(UnityEngine.Random.Range(0, purpleCherry) <= geo && geo < 26)
+			if(UnityEngine.Random.Range(0, purpleCherry) <= (geo > 26 ? 25 : geo))
 			{
 				timer_SoulDrain = -1 * purpleCherryTimegain;
 				HeroController.instance.RUN_SPEED = cherrySpeedBoost * defaultRunSpeed;
