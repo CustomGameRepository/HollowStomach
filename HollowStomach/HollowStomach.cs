@@ -27,22 +27,22 @@ namespace HollowStomach
 	 	public override string GetVersion() => "1.1.0";
 	 	public HollowStomach() : base("Hollow Stomach") { }
 	 	public float timer_SoulDrain = 0;
-		private readonly float soulDrainTimer = 0.3030303f; // interval to drain soul
-		private int hungerLevel = 1; // how much soul to drain 
+		private float soulDrainTimer = 0.3030303f; // interval to drain soul
+		private int hungerLevel; // how much soul to drain 
 		public float timer_SoulGain = 0;
-		private int minSoul = 99; // minimum soul at resting
+		private int minSoul; // minimum soul at resting
 		private readonly float soulGainTimer = 0.101010101f;
 		private readonly int minSoulGainInterval = 1;
 		public float timer_TakeDamage = 0;
 		private readonly float healthTimer = 2f; // health drain interval
 		public float timer_RegainSoul = 0;
-        private int bossGeoDropChance = 6; // boss drops geo every N hits
-		private int soulPerGeo;// = 33;
+        private int bossGeoDropChance; // boss drops geo every N hits
+		private int soulPerGeo;
         private int hitCounter = 0;
         private bool shouldDamage = false;
 		// purple cherries give you a speed boost and prevent soul from draining
-		private readonly int purpleCherry = 1000; // rate at which purple cherries drop
-		private readonly float purpleCherryTimegain = 6.0f;
+		private int purpleCherry = 1000; // rate at which purple cherries drop
+		private float purpleCherryTimegain = 6.0f;
 		private readonly float defaultRunSpeed = 8.3f;
 		private readonly float cherrySpeedBoost = 1.5f;
 		public GameObject _smallGeo;
@@ -99,12 +99,14 @@ namespace HollowStomach
 			getPrefab();
 			Log("Hollow Stomach: " + (Settings.starvationMode ? "Starvation Mode" : "Normal Mode" ));
 
-			hungerLevel = (Settings.starvationMode ? hungerLevel * 2 : hungerLevel);
-			minSoul = (Settings.starvationMode ? minSoul * 2 : minSoul);
-			bossGeoDropChance = (Settings.starvationMode ? bossGeoDropChance * 2 : bossGeoDropChance);
-			soulPerGeo = (Settings.starvationMode ? 21 : 33);
+			purpleCherry = (Settings.starvationMode ? 250 : 1000);
+			purpleCherryTimegain = (Settings.starvationMode ? 3.0f : 6.0f);
+			soulDrainTimer = (Settings.starvationMode ? 0.4040404f : 0.3030303f);
+			hungerLevel = (Settings.starvationMode ? 2 : 1);
+			minSoul = (Settings.starvationMode ? 99 : 99);
+			bossGeoDropChance = (Settings.starvationMode ? 9 : 6);
+			soulPerGeo = (Settings.starvationMode ? 22 : 33);
 		}
-
 
 		public void getPrefab()
 		{
@@ -204,6 +206,7 @@ namespace HollowStomach
 			{
 				timer_SoulDrain = -1 * purpleCherryTimegain;
 				HeroController.instance.RUN_SPEED = cherrySpeedBoost * defaultRunSpeed;
+				PlayerData.instance.AddMPCharge(soulPerGeo);
 			}
 			// technically this runs every time geo is added (i.e., shade collection)
 			// but thats not really a problem i care about, its fine
