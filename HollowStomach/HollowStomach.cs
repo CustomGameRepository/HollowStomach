@@ -7,6 +7,10 @@ using UnityEngine;
 
 namespace HollowStomach
 {
+	public class MyGlobalSettings
+	{
+		public bool starvationMode = false;
+	}
 	/*
 	 * Make Hollow Knight more like Hungry Knight
 	 * Behavior:
@@ -23,7 +27,7 @@ namespace HollowStomach
 	 *     - hitting a boss (hardcoded) drops geo
 	 *     - works with all custom knight skins
 	 */
-	public class HollowStomach : Mod
+	public class HollowStomach : Mod , IGlobalSettings<MyGlobalSettings>
 	{
 	 	public override string GetVersion() => "1.1.0";
 	 	public HollowStomach() : base("Hollow Stomach") { }
@@ -51,17 +55,9 @@ namespace HollowStomach
 		public GameObject _smallGeo;
 		public GameObject SmallGeo => UnityEngine.Object.Instantiate(_smallGeo);
 
-		private class MyGlobalSettings : Modding.ModSettings
-		{
-			public bool starvationMode = false;
-		}
+		
 
 		private MyGlobalSettings Settings = new MyGlobalSettings();
-		public override Modding.ModSettings GlobalSettings
-		{
-			get => Settings;
-			set => Settings = (MyGlobalSettings)value;
-		}
 
 		private readonly bool debug = false; //TODO: TURN THIS OFF
 
@@ -95,21 +91,18 @@ namespace HollowStomach
 		public override void Initialize()
 		{
 			Log("Hollow Stomach v." + GetVersion());
-			ModHooks.Instance.SoulGainHook += NoSoul;
-			ModHooks.Instance.HeroUpdateHook += DrainSoul; // drain the soul
-			ModHooks.Instance.HeroUpdateHook += Starve;    // die if you don't eat
-			ModHooks.Instance.HeroUpdateHook += checkNearBench; // are we near a bench
-			ModHooks.Instance.SlashHitHook += shakeDown;
-			ModHooks.Instance.SetPlayerBoolHook += antiSoftlock;
+			ModHooks.SoulGainHook += NoSoul;
+			ModHooks.HeroUpdateHook += DrainSoul; // drain the soul
+			ModHooks.HeroUpdateHook += Starve;    // die if you don't eat
+			ModHooks.HeroUpdateHook += checkNearBench; // are we near a bench
+			ModHooks.SlashHitHook += shakeDown;
+			ModHooks.SetPlayerBoolHook += antiSoftlock;
 			On.GeoCounter.AddGeo += getCherry;
 			On.EnemyDreamnailReaction.RecieveDreamImpact += nerfDreamNail; // sure
 			getPrefab();
 			Log("Hollow Stomach: " + (Settings.starvationMode ? "Starvation Mode" : "Normal Mode" ));
 
-			//no gathering swarm allowed
-			PlayerData.instance.SetInt("charmCost_3", 6);
-			//dream wielder is very strong, increasing cost
-			PlayerData.instance.SetInt("charmCost_30", 2);
+			
 
 			purpleCherry = (Settings.starvationMode ? 500 : 1000);
 			purpleCherryTimegain = (Settings.starvationMode ? 3.0f : 6.0f);
@@ -120,10 +113,38 @@ namespace HollowStomach
 			soulPerGeo = (Settings.starvationMode ? 22 : 33);
 			soulPerGeoBuffedMin = (Settings.starvationMode ? 6 : 9);
 			soulPerGeoBuffedMax = (Settings.starvationMode ? 16 : 24);
-		}
 
-		// this is a hack, but it works, so
-		// it's a little buggy if you have vessels, but it functions so
+            //Contributor: HKLab
+            ModHooks.GetPlayerIntHook += ModHooks_GetPlayerIntHook;
+			//Contributor: HKLab
+			On.GeoControl.OnEnable += GeoControl_OnEnable;
+		}
+		//Contributor: HKLab
+        private int ModHooks_GetPlayerIntHook(string name, int orig)
+        {
+			//no gathering swarm allowed
+			if (name == "charmCost_1") return 6;
+			//dream wielder is very strong, increasing cost
+			else if (name == "charmCost_30") return 2;
+			return orig;
+        }
+        //Contributor: HKLab
+        private void GeoControl_OnEnable(On.GeoControl.orig_OnEnable orig, GeoControl self)
+        {
+			BossSceneController oi = BossSceneController.Instance;
+			BossSceneController.Instance = null;
+			try
+            {
+				orig(self);
+            }
+            finally
+            {
+				BossSceneController.Instance = oi;
+            }
+        }
+
+        // this is a hack, but it works, so
+        // it's a little buggy if you have vessels, but it functions so
         private void nerfDreamNail(On.EnemyDreamnailReaction.orig_RecieveDreamImpact orig, EnemyDreamnailReaction self)
         {
 			orig(self);
@@ -133,13 +154,14 @@ namespace HollowStomach
 		}
 
 		// TRY to prevent softlocks
-		private void antiSoftlock(string originalSet, bool value)
+		private bool antiSoftlock(string originalSet, bool value)
         {
 			if(antiSoftlockBools.Contains(originalSet))
             {
 				PlayerData.instance.AddMPCharge(99);
 				GameCameras.instance.soulOrbFSM.SendEvent("MP GAIN");
 			}
+			return value;
 		}
 
         public void getPrefab()
@@ -406,5 +428,16 @@ namespace HollowStomach
 		{
 			return (debug ? amount : 0);
 		}
-	}
+
+        public void OnLoadGlobal(MyGlobalSettings s)
+        {
+			Settings = s;
+        }
+
+        public MyGlobalSettings OnSaveGlobal()
+        {
+			return Settings;
+
+		}
+    }
 }
